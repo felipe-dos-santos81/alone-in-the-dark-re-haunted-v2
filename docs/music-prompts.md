@@ -1,17 +1,18 @@
 # Music prompts
 
-One block per piece of the external soundtrack, ready to paste into a music
-generator. The brief behind them is
-[music-generation-guide.md](music-generation-guide.md): what each number
-scores, where the lengths come from, and how the files reach the game.
+One block per piece of the external soundtrack, for a music generator. The
+brief behind them is [music-generation-guide.md](music-generation-guide.md):
+what each number scores, where the lengths come from, and how the files
+reach the game.
 
 Each block gives the file name, the target length (within about 10 percent),
 a **Style** paragraph for the generator's style or description field, and
 the **Source text** it was written from, quoted from the game's English with
 its page and layout codes stripped. The two vocal pieces, 02 and 03, add
 **Lyrics**: a draft the generation project may rewrite, kept to the words of
-the source. Everything else is instrumental. Period: 1924, Louisiana. Master
-the whole set to one loudness level.
+the source. Everything else is instrumental. Period: the 1920s, Louisiana.
+Files are `.ogg` here, but `.flac`, `.mp3` and `.wav` work too; mono or
+stereo, any sample rate. Master the whole set to one loudness level.
 
 ## 02 - Epilogue credits (`02.ogg`, 1:20, plays once)
 
@@ -20,7 +21,7 @@ keeps a shadow. Dawn light. Strings and a piano, a sung verse, then the
 voice gives way to the orchestra for the credits. Not a dirge: a man at
 peace with what he did. Ends resolved.
 
-**Lyrics** (draft).
+**Lyrics (draft).**
 
 ```
 They will find my body
@@ -53,7 +54,7 @@ by floor into unease. One file plays for both heroes, so the voice is
 Emily's, or a narrator's that fits either. Cut short by the game when play
 starts, so no tail needed.
 
-**Lyrics** (draft).
+**Lyrics (draft).**
 
 ```
 The kind of place ghosts run away from,
@@ -94,7 +95,7 @@ strings in short strokes, no melody that resolves. It follows a sting (12,
 13 or 14) and gives way to 04 when the enemy dies, so it shares their key.
 Keeps tension flat rather than building to an end.
 
-**Source text.** "The Creatures of Night" (`doc09.txt`):
+**Source text.** "The Creatures of the Night" (`doc09.txt`):
 
 > You who read me, know that night engenders monsters and that night
 > creatures exist.
@@ -145,8 +146,8 @@ line shouted as the cavern shakes:
 ## 11 - Caves haunting cue (`11.ogg`, 3:20, plays once)
 
 **Style.** Drums far off in a swamp at night, a sea shanty half heard,
-drowned voices. Slow, dark, low percussion and a bowed drone; an optional
-chanted version may use the eight lines below. Like 07 it plays rarely and
+drowned voices, wordless. Slow, dark, low percussion and a bowed drone; the
+eight lines below set the rhythm, not sung. Like 07 it plays rarely and
 unannounced, underground.
 
 **Source text.** The pirates' song and the trial's last night (`doc17.txt`):
@@ -168,7 +169,7 @@ unannounced, underground.
 string line, ending on the chord 05 begins on. The window zombie's
 entrance, among others.
 
-**Source text.** "The Creatures of Night" (`doc09.txt`):
+**Source text.** "The Creatures of the Night", "Of Strife" (`doc09.txt`):
 
 > He who prowls among books will perish by the blade.
 
@@ -186,7 +187,7 @@ straight into 05's key.
 **Style.** The shortest: a scream of strings and one drum hit, into 05's
 key. The dance hall ghosts and the cave creatures.
 
-**Source text.** "The Creatures of Night" (`doc09.txt`):
+**Source text.** "The Creatures of the Night", "Of Strife" (`doc09.txt`):
 
 > He who flies in the dark caverns will scream in fear.
 

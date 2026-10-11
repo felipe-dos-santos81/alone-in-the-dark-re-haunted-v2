@@ -40,12 +40,12 @@ minutes of music.
 | 02 | The epilogue's last scene and credits: the house behind, the car, the driver's reveal. Follows 09. | 1:20 | 1:03 | **Lyrics** | Jeremy's note, `doc01.txt` lines 2 and 5 to 6: "They will find my body but will not have my soul." Closing on "Some may understand what I have done. May God forgive me. Farewell." Sung as a farewell, not a dirge. |
 | 03 | The intro: the car on the road to Derceto, the walk up, the climb to the attic. Cut by 04 when play starts. | 1:17 | 2:42 | **Lyrics** | Edward's case notes, `doc20.txt` line 43: "it's the kind of place ghosts run away from in terror. Grisly murders, curses, lunacy ..." Emily's letter, `doc21.txt` line 36: "Derceto is waiting for me. I pray that my fear is nothing more than the fruit of my imagination." One file plays for both heroes, so the lyric is in one voice: Emily's, or a narrator's that fits either. |
 | 04 | The attic theme: starts the game, and is queued again (`NEXT_MUSIC`) after every enemy dies, so it is the "calm restored" theme of the whole house. Played most. | 2:08 | 3:28 | none | Emily, `doc21.txt` line 11: "That creaking old mansion, with its unusual tales, its secret library door, the ancient upstairs clock, all those occult books". Uneasy calm. |
-| 05 | Danger: queued by every enemy when it engages (after the sting 12, 13 or 14) and runs while the fight lasts. | 1:44 | 1:46 | none | `doc09.txt` line 16, "The Creatures of Night": "night engenders monsters and that night creatures exist." Driving, no resolution. |
+| 05 | Danger: queued by every enemy when it engages (after the sting 12, 13 or 14) and runs while the fight lasts. | 1:44 | 1:46 | none | `doc09.txt` line 16, "The Creatures of the Night": "night engenders monsters and that night creatures exist." Driving, no resolution. |
 | 07 | House haunting cue: an invisible object on each of the four house floors rolls dice every frame and now and then plays a creak, a groan, or this song. Rare, unannounced. | 2:03 | 2:27 | none | Jeremy's diary, `doc07.txt` line 81, February 7: "His breath was ice and his burning eyes froze me; I could not move!" Sparse, long silences welcome. |
 | 08 | Death: the hero's body carried to the tree in the cavern, "The End" (`@40`). Game over follows. | 0:34 | none | none | Pregzt, `doc18.txt` line 35: "My servants will lay you upon the sacrificial stone. My roar will rend the night." One phrase, then nothing. |
 | 09 | Epilogue, first part: the hero walks out of Derceto to the waiting car. Then 02. | 1:29 | none | none | `doc21.txt` line 39: "Nothing will ever persuade me that my uncle was insane." Dawn after a night; relief with a shadow. |
 | 10 | The ending cinematic: the oil lamp thrown, the tree and Pregzt burning (`ENDSEQ.PAK`), then "Get out of here!" (`@112`) as the cavern shakes. | 1:23 | none | none | `doc03.txt` line 21, Book of Abdul: "Let the shadow of Cthulhu darken the sky." Climax, fire, collapse. |
-| 11 | Caves haunting cue: the same dice as 07, on the three underground floors (cellar passages, caves, the pirates' cavern). | 3:20 | none | none | `doc17.txt` lines 73 to 80, the Astarte's song: "A skull! Go to port / Saber! To starboard! / Pass over that will / And with death you'll deal." Drums far off (line 142, "the insidious rhythm of far-off drums"). An optional sung version may use these eight lines. |
+| 11 | Caves haunting cue: the same dice as 07, on the three underground floors (cellar passages, caves, the pirates' cavern). | 3:20 | none | none | `doc17.txt` lines 73 to 80, the Astarte's song: "A skull! Go to port / Saber! To starboard! / Pass over that will / And with death you'll deal." Drums far off (line 142, "the insidious rhythm of far-off drums"). |
 | 12 | Fight sting, type A: some enemies open with it (the attic window zombie among them), then 05. | 0:25 | none | none | `doc09.txt` line 56: "He who prowls among books will perish by the blade." A hit, a rise, hand over to 05. |
 | 13 | Fight sting, type B (the attic's other zombie among them), then 05. | 0:11 | none | none | `doc09.txt` line 40: "Unhappy he who frees the prowler." |
 | 14 | Fight sting, type C (the dance hall ghosts, the cave creatures among others), then 05. | 0:09 | none | none | `doc09.txt` line 58: "He who flies in the dark caverns will scream in fear." |
@@ -76,9 +76,6 @@ split a group when a floor wants its own.
 | 19 | Ambient loop, the house (attic to ground floor). | 3:00, seamless loop | Whenever no scripted song owns the music on the four house floors; a scripted song replaces it and it returns when that song ends. |
 | 20 | Ambient loop, cellar and caves. | 3:00, seamless loop | The same on the three underground floors. The epilogue stage has no loop. |
 | 21 | Ambient loop, the dance hall. | 2:00, seamless loop | In the dance hall only; cuts in and out at the room's doors. |
-
-Text for these: 19 Jeremy's diary (`doc07.txt`), 20 the pirate trial
-(`doc17.txt`), 21 the dance of death (`@1031`, `@108`).
 
 ## Workflow for the generation project
 
@@ -117,6 +114,6 @@ Text for these: 19 Jeremy's diary (`doc07.txt`), 20 the pirate trial
   the script number: a new game logs `Life 562 | ... MUSIC` (row 04); the
   attic window zombie, when it rises, `Life 19 | ... MUSIC` then
   `NEXT_MUSIC` (rows 12 and 05); the attic's other zombie `Life 16` (row
-  13). Row 07 is `Life 528` to `531` and needs patience. The cues of the
-  checklist passed in-game on 2026-10-11 with stand-in files; the floors
-  given for rows 07 and 11 are still from the disassembly alone.
+  13). Row 07 is `Life 528` to `531` and needs patience. The floors given
+  for rows 07 and 11 are from the disassembly alone, not yet checked
+  in-game.
