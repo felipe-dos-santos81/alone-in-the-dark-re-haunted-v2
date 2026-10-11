@@ -19,8 +19,8 @@ RemasterConfig g_remasterConfig;
 
 // A file saved the defaults of its time, so loading an older one changes those
 // once and saves it. 2: graphics.hdModels became on by default. 3: backgrounds.dump
-// became off by default.
-static const int kConfigVersion = 4;
+// became off by default. 5: music.external became on by default.
+static const int kConfigVersion = 5;
 // HD display curve; measured: planted feet drift within 5 % of linear
 static const float kPoseSmoothingStrength = 0.5f;
 
@@ -430,6 +430,11 @@ void loadRemasterConfig()
     {
         g_remasterConfig.animation.poseSmoothingStrength = kPoseSmoothingStrength; // 0.72 was the old smoothstep's default
         printf(CFG_TAG "animation.poseSmoothingStrength now sets the HD models' curve through keyframes; set it to its default %.1f\n", kPoseSmoothingStrength);
+    }
+    if (version < 5 && !g_remasterConfig.music.enableExternalMusic)
+    {
+        g_remasterConfig.music.enableExternalMusic = true;
+        printf(CFG_TAG "music.external is now on by default; turned it on (F1 turns it off again)\n");
     }
 
     // Validate and clamp numeric config values to safe ranges

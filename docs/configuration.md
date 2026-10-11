@@ -15,7 +15,8 @@ then saves it:
 - before version 2, it turns `graphics.hdModels` on;
 - before version 3, it turns `backgrounds.dump` off;
 - before version 4, it sets `animation.poseSmoothingStrength` from the old
-  default 0.72 to the new 0.5.
+  default 0.72 to the new 0.5;
+- before version 5, it turns `music.external` on.
 
 ## Graphics
 
@@ -107,9 +108,6 @@ Rebind them in **Controls** in the system menu rather than by hand.
   of these the song is silent.
 - **Music ON/OFF** in the system menu silences every file, loops included,
   and ON brings the loop back at once and the next scripted song at its cue.
-- **Older files.** A file saved before this option worked holds
-  `music.external = false`. Set it to `true`, or tick **External music** in
-  the F1 dialog.
 - **Jack in the Dark** (`gamedata.jackmode`) reads the same folder with its
   own song numbers. Give it its own `music.folder`, or turn the option off.
 

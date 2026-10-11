@@ -9,9 +9,7 @@ Mark each cell `pass`, or `fail:` with a one-line note.
   links that folder into the app, which reads its files from
   `Tatou.app/Contents/Resources`; `aitd_remaster.cfg` is there too.
 - **Settings.** Unless a row says otherwise, `music.external` is `true`,
-  `music.folder` is `music` and `music.volume` is `1.0`. A cfg saved before
-  this option worked holds `music.external = false`: tick **External music**
-  in F1 first.
+  `music.folder` is `music` and `music.volume` is `1.0`.
 - Rows 4, 6, 11 and 12 edit the cfg, and rows 5 and 10 the music folder.
   Restore both afterwards.
 
