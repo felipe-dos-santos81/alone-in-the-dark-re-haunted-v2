@@ -63,20 +63,19 @@ Notes for the generator:
 - 02 and 03 are the vocal pieces agreed for this brief; everything else
   stays instrumental like the original.
 
-## Extras the engine does not call yet
+## The remaster's own pieces
 
-Numbers 18 and up are free. Files can be produced now; each needs a cue in
-the engine before it plays, listed here as pending work. No game-over sting
-is reserved: row 08 is that cue. Three ambient loops rather than one per
-floor, because the floors within a group share a mood; split a group when a
-floor wants its own.
+Numbers 18 to 21 are the remaster's; the engine plays all four, looping.
+No game-over sting is reserved: row 08 is that cue. Three ambient loops
+rather than one per floor, because the floors within a group share a mood;
+split a group when a floor wants its own.
 
-| # | Piece | Length | Engine work needed |
+| # | Piece | Length | Heard when |
 |---|---|---|---|
-| 18 | Title screen theme. | 1:30, seamless loop | Done: plays while the startup menu is up, loops, fades out in 1 s on New game, Continue and the idle timeout. |
-| 19 | Ambient loop, the house (attic to ground floor). | 3:00, seamless loop | Done: plays, looping, whenever no scripted song owns the music on stages 0 to 3; a scripted song replaces it and it returns when that song ends. |
-| 20 | Ambient loop, cellar and caves. | 3:00, seamless loop | Done, stages 4 to 6. The epilogue stage has no loop. |
-| 21 | Ambient loop, the dance hall. | 2:00, seamless loop | Done, stage 3 room 3; cuts in and out at the room's doors. |
+| 18 | Title screen theme. | 1:30, seamless loop | While the startup menu is up; fades out in 1 s on New game, Continue and the idle timeout. |
+| 19 | Ambient loop, the house (attic to ground floor). | 3:00, seamless loop | Whenever no scripted song owns the music on the four house floors; a scripted song replaces it and it returns when that song ends. |
+| 20 | Ambient loop, cellar and caves. | 3:00, seamless loop | The same on the three underground floors. The epilogue stage has no loop. |
+| 21 | Ambient loop, the dance hall. | 2:00, seamless loop | In the dance hall only; cuts in and out at the room's doors. |
 
 Text for these: 19 Jeremy's diary (`doc07.txt`), 20 the pirate trial
 (`doc17.txt`), 21 the dance of death (`@1031`, `@108`).
@@ -86,9 +85,8 @@ Text for these: 19 Jeremy's diary (`doc07.txt`), 20 the pirate trial
 1. `make lang-extract` here; copy `data/lang/en/` over (it is git-ignored).
 2. Strip the `#` codes; keep `messages.txt` for the `@` lines and the
    documents for the fragments.
-3. One prompt per row of the table above: the "Plays when" cell as the
-   scene, the text cell as the quoted material, the length as the target;
-   lyrics only for 02 and 03.
+3. One prompt per piece: [music-prompts.md](music-prompts.md) has them
+   ready to paste, with the full source lines; lyrics only for 02 and 03.
 4. Name each result `NN.ogg` (or flac, mp3, wav), `NN` the row number, and
    drop the set into `data/aitd1/music/`. `make run` picks it up; on macOS
    `make run` links the folder into the app.
@@ -119,5 +117,6 @@ Text for these: 19 Jeremy's diary (`doc07.txt`), 20 the pirate trial
   the script number: a new game logs `Life 562 | ... MUSIC` (row 04); the
   attic window zombie, when it rises, `Life 19 | ... MUSIC` then
   `NEXT_MUSIC` (rows 12 and 05); the attic's other zombie `Life 16` (row
-  13). Row 07 is `Life 528` to `531` and needs patience. Not yet checked
-  in-game at the time of writing.
+  13). Row 07 is `Life 528` to `531` and needs patience. The cues of the
+  checklist passed in-game on 2026-10-11 with stand-in files; the floors
+  given for rows 07 and 11 are still from the disassembly alone.
