@@ -17,22 +17,22 @@ Mark each cell `pass`, or `fail:` with a one-line note.
 
 | # | Check | Result |
 |---|---|---|
-| 1 | Start the game and a new game: the intro's song and the attic's song play from `data/aitd1/music` | |
-| 2 | Let a song end without changing room: silence follows and nothing restarts | |
-| 3 | With `debug.logLifeScripts = true`, play until the log prints `NEXT_MUSIC` while a song plays: the queued song starts when the current one ends | |
+| 1 | Start the game and a new game: the intro's song and the attic's song play from `data/aitd1/music` | pass |
+| 2 | Let a song end without changing room: silence follows and nothing restarts | pass |
+| 3 | With `debug.logLifeScripts = true`, play until the log prints `NEXT_MUSIC` while a song plays: the queued song starts when the current one ends | pass |
 | 3b | Play until the log prints `FADE_MUSIC` while a song plays: the song fades out over about 3 s and the next song starts after the wait. No script of the CD release calls it (`docs/music-generation-guide.md`): with that data, mark `n/a` | |
-| 4 | `music.folder = "nope"`: the game runs with no error and is silent, as before this change | |
-| 5 | Rename `01.wav` away: that song is silent, the others play | |
-| 6 | `music.external = false`: silent, as before this change | |
-| 7 | Save during a song, load the save: the song restarts from the beginning | |
-| 8 | `music.volume = 0.3`: the next song is quieter than the sound effects | |
-| 9 | Quit (window close and the menu's quit) while a song plays: clean exit, no crash | |
-| 10 | Replace `03.wav` by an empty file: that song is silent, the game goes on, the next song plays | |
-| 11 | `music.volume = 2.0` in the cfg: plays at full volume (the game clamps the value to 1.0 when it reads the cfg) | |
-| 12 | `music.folder = "music/"` and then an absolute path to the same folder: the songs play | |
-| 13 | Turn "External music" off in F1 mid-song: the song keeps playing until the script's next stop or fade, which still act on it | |
-| 14 | With an `18.wav` in the folder: the startup menu plays it, it loops past its end, and it fades out within a second on New game, on Continue, and when the menu times out into the intro; after a game over the menu plays it again; with `music.external = false` the menu is silent | |
-| 15 | With `19.wav`, `20.wav` and `21.wav` in the folder: when the attic theme ends, `19` starts and loops; it cuts to `20` on arriving underground and back to `19` on the way up; in the dance hall it cuts to `21` at the door and back to `19` on leaving | |
-| 16 | A fight's sting replaces the loop at once and the loop returns when the danger song ends; `LM_GAME_OVER`'s fade silences it like any song | |
-| 17 | Load a save made in silence: the floor's loop starts; load one made during a song: that song plays, the loop follows it; rename `19.wav` away: the house is silent and `20` still plays underground | |
-| 18 | The system menu's music line reads "Music ON" at start; one press turns it to "Music OFF" and silences the song or the loop at once; back ON, the loop returns within a frame and the next scripted song plays at its cue; with it OFF the startup menu's theme does not play; a save made while OFF, loaded with it ON, plays the loop and then the next scripted song at its cue | |
+| 4 | `music.folder = "nope"`: the game runs with no error and is silent, as before this change | pass |
+| 5 | Rename `01.wav` away: that song is silent, the others play | pass |
+| 6 | `music.external = false`: silent, as before this change | pass |
+| 7 | Save during a song, load the save: the song restarts from the beginning | pass |
+| 8 | `music.volume = 0.3`: the next song is quieter than the sound effects | pass |
+| 9 | Quit (window close and the menu's quit) while a song plays: clean exit, no crash | pass |
+| 10 | Replace `03.wav` by an empty file: that song is silent, the game goes on, the next song plays | pass |
+| 11 | `music.volume = 2.0` in the cfg: plays at full volume (the game clamps the value to 1.0 when it reads the cfg) | pass |
+| 12 | `music.folder = "music/"` and then an absolute path to the same folder: the songs play | pass |
+| 13 | Turn "External music" off in F1 mid-song: the song keeps playing until the script's next stop or fade, which still act on it | pass |
+| 14 | With an `18.wav` in the folder: the startup menu plays it, it loops past its end, and it fades out within a second on New game, on Continue, and when the menu times out into the intro; after a game over the menu plays it again; with `music.external = false` the menu is silent | pass |
+| 15 | With `19.wav`, `20.wav` and `21.wav` in the folder: when the attic theme ends, `19` starts and loops; it cuts to `20` on arriving underground and back to `19` on the way up; in the dance hall it cuts to `21` at the door and back to `19` on leaving | pass |
+| 16 | A fight's sting replaces the loop at once and the loop returns when the danger song ends; `LM_GAME_OVER`'s fade silences it like any song | pass |
+| 17 | Load a save made in silence: the floor's loop starts; load one made during a song: that song plays, the loop follows it; rename `19.wav` away: the house is silent and `20` still plays underground | pass |
+| 18 | The system menu's music line reads "Music ON" at start; one press turns it to "Music OFF" and silences the song or the loop at once; back ON, the loop returns within a frame and the next scripted song plays at its cue; with it OFF the startup menu's theme does not play; a save made while OFF, loaded with it ON, plays the loop and then the next scripted song at its cue | pass |
