@@ -12,6 +12,7 @@
 #include "fontTTF.h"
 #include "input.h"
 #include "menuMouse.h"
+#include "pickupPromptGuard.h"
 #include <SDL.h>
 #include <math.h>
 
@@ -281,6 +282,7 @@ void drawInventoryActions(int arg)
 
 void processInventory(void)
 {
+    WaterCutSuspend waterCutOff;    // item models are not cut at the cave waterline here
     int exitMenu = 0;
     int choice = 0;
     int firstTime = 1;
@@ -820,6 +822,7 @@ void DrawFoundWindow(int menuState, int objectName, int zoomFactor)
 
 void FoundObjet(int objIdx, int param)
 {
+    WaterCutSuspend waterCutOff;    // the found item's model is not cut at the cave waterline
     tWorldObject* objPtr;
 
     if (objIdx < 0)
@@ -837,13 +840,9 @@ void FoundObjet(int objIdx, int param)
         return;
     }
 
-    if (objPtr->trackNumber)
-    {
-        if (timer - objPtr->trackNumber < 300) // prevent from reopening the window every frame
-            return;
-    }
+    if (pickupPromptGuardIsCoolingDown(objIdx))
+        return;
 
-    objPtr->trackNumber = 0;
     mouseWorldTakeOver();
 
     // When HD backgrounds are active, use HD inventory background overlay
@@ -1045,7 +1044,7 @@ void FoundObjet(int objIdx, int param)
     }
     else
     {
-        objPtr->trackNumber = timer;
+        pickupPromptGuardOnPromptDeclined(objIdx, param == 0);
     }
 
     while (key && Click)

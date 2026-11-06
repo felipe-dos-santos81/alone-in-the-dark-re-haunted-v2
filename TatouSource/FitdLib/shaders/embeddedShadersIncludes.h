@@ -77,6 +77,9 @@ SHADER_DATA_FALLBACK
 #endif
 #if __has_include("shaders/generated/spirv/textured_ps.sc.bin.h")
 #include "shaders/generated/spirv/textured_ps.sc.bin.h"
+#include "shaders/generated/spirv/contactShadow_ps.sc.bin.h"
+#include "shaders/generated/spirv/softShadow_vs.sc.bin.h"
+#include "shaders/generated/spirv/softShadow_ps.sc.bin.h"
 #else
 SHADER_DATA_FALLBACK
 #endif
@@ -250,6 +253,9 @@ SHADER_DATA_FALLBACK
 #endif
 #if __has_include("shaders/generated/metal/textured_ps.sc.bin.h")
 #include "shaders/generated/metal/textured_ps.sc.bin.h"
+#include "shaders/generated/metal/contactShadow_ps.sc.bin.h"
+#include "shaders/generated/metal/softShadow_vs.sc.bin.h"
+#include "shaders/generated/metal/softShadow_ps.sc.bin.h"
 #else
 SHADER_DATA_FALLBACK
 #endif
@@ -423,6 +429,9 @@ SHADER_DATA_FALLBACK
 #endif
 #if __has_include("shaders/generated/glsl/textured_ps.sc.bin.h")
 #include "shaders/generated/glsl/textured_ps.sc.bin.h"
+#include "shaders/generated/glsl/contactShadow_ps.sc.bin.h"
+#include "shaders/generated/glsl/softShadow_vs.sc.bin.h"
+#include "shaders/generated/glsl/softShadow_ps.sc.bin.h"
 #else
 SHADER_DATA_FALLBACK
 #endif
@@ -596,6 +605,9 @@ SHADER_DATA_FALLBACK
 #endif
 #if __has_include("shaders/generated/dx11/textured_ps.sc.bin.h")
 #include "shaders/generated/dx11/textured_ps.sc.bin.h"
+#include "shaders/generated/dx11/contactShadow_ps.sc.bin.h"
+#include "shaders/generated/dx11/softShadow_vs.sc.bin.h"
+#include "shaders/generated/dx11/softShadow_ps.sc.bin.h"
 #else
 SHADER_DATA_FALLBACK
 #endif

@@ -190,6 +190,8 @@ void LanguageSelectionMenu(void)
     DrawLanguageMenu(availableLanguages, availableCount, 0);
 
     osystem_startFrame();
+    if (detailLevel == 1)
+        osystem_drawLanguageSelectionBackground();
     osystem_stopFrame();
     osystem_CopyBlockPhys((unsigned char*)logicalScreen, 0, 0, 320, 200);
 
@@ -321,6 +323,8 @@ int MainMenu(void)
     DrawMenu(0);
 
     osystem_startFrame();
+    if (detailLevel == 1 && g_gameId != AITD3)
+        osystem_drawStartupMenuBackground();
     osystem_stopFrame();
     osystem_CopyBlockPhys((unsigned char*)logicalScreen,0,0,320,200);
 
@@ -335,7 +339,9 @@ int MainMenu(void)
 		osystem_CopyBlockPhys((unsigned char*)logicalScreen,0,0,320,200);
 		osystem_startFrame();
 
-		if (detailLevel == 1)
+		// AITD3 supplies its own complete MENU3 screen. The generic artwork
+		// overlay otherwise covers that screen and its selection text.
+		if (detailLevel == 1 && g_gameId != AITD3)
 			osystem_drawStartupMenuBackground();
 		if(selectedEntry!=-1 || evalChrono(&chrono) > 0x10000)
 		{
