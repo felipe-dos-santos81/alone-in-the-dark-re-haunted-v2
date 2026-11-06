@@ -127,6 +127,12 @@ write non-ASCII text as `\x` escapes, or, like `FitdLib/text/uiText.cpp`,
 give the file `/utf-8` in both `FitdLib/CMakeLists.txt` and
 `tests/engine/CMakeLists.txt`.
 
+`.github/workflows/release.yml` builds the player archives (Windows x64,
+Linux x64, macOS universal) and a `vX.Y.Z` tag publishes them as a GitHub
+Release. `tools/release/stage.sh` decides what ships beside the executable: a
+new asset the game reads from its folder goes there too, and
+`tools/release/README.txt` tells players where it lives.
+
 ## Git
 
 `TatouSource/build/` holds the CMake build trees and is ignored (only the

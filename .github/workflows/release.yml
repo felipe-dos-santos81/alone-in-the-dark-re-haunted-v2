@@ -1,0 +1,156 @@
+# Builds Tatou for Windows x64, Linux x64 and macOS (universal) with the HD
+# assets, and on a version tag publishes a GitHub Release with the three
+# archives and SHA256SUMS. A manual run (workflow_dispatch) builds and uploads
+# the archives as workflow artifacts only. No game file is ever packaged: the
+# player copies their own INDARK files in (tools/release/README.txt).
+# Modelled on primal-rage-re's release.yml.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04   # the oldest supported image keeps the glibc floor low
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        run: echo "VER=$(if [ "$GITHUB_REF_TYPE" = tag ]; then echo "${GITHUB_REF_NAME#v}"; else echo 0.0.0-dev; fi)" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: bash TatouSource/install_deps.sh
+      - name: Build
+        run: |
+          cmake -S TatouSource -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target Fitd build_hda_archive --parallel 4
+      - name: Package
+        run: |
+          D="aitd-rehaunted-$VER-linux-x64"
+          mkdir -p "$D" dist
+          cp build/Fitd/Tatou "$D/"
+          tools/release/stage.sh build/tools/build_hda_archive "$D" "$D"
+          # SDL3 is linked in: only system libraries, all present on the image.
+          ldd "$D/Tatou"
+          if ldd "$D/Tatou" | grep 'not found'; then echo "::error::unresolved library"; exit 1; fi
+          tar czf "dist/$D.tar.gz" "$D"
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dist/*.tar.gz
+          archive: false   # already an archive: upload it as it is
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        run: echo "VER=$(if [ "$GITHUB_REF_TYPE" = tag ]; then echo "${GITHUB_REF_NAME#v}"; else echo 0.0.0-dev; fi)" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: bash TatouSource/install_deps.sh
+      - name: Build (universal)
+        run: |
+          cmake -S TatouSource -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.3
+          cmake --build build --target Fitd build_hda_archive --parallel 3
+      - name: Package
+        run: |
+          D="aitd-rehaunted-$VER-macos-universal"
+          APP="$D/Tatou.app"
+          mkdir -p "$D" dist
+          cp -R build/Fitd/Tatou.app "$D/"
+          # The app starts in its Resources folder: the assets go there.
+          tools/release/stage.sh build/tools/build_hda_archive "$APP/Contents/Resources" "$D"
+          plutil -replace CFBundleShortVersionString -string "$VER" "$APP/Contents/Info.plist"
+          plutil -replace CFBundleVersion -string "$VER" "$APP/Contents/Info.plist"
+          lipo "$APP/Contents/MacOS/Tatou" -verify_arch arm64 x86_64
+          # SDL3 is linked in: only system frameworks and libraries.
+          if otool -L "$APP/Contents/MacOS/Tatou" | awk '/^\t/{print $1}' | grep -v -e '^/System/Library/' -e '^/usr/lib/'; then
+            echo "::error::non-system library"; exit 1
+          fi
+          # Ad-hoc signature only (not Developer ID): Apple Silicon refuses
+          # arm64 code with no signature at all.
+          codesign --force --sign - "$APP"
+          ditto -c -k --keepParent "$D" "dist/$D.zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dist/*.zip
+          archive: false
+
+  windows:
+    runs-on: windows-2022   # has the "Visual Studio 17 2022" generator of the windows-release preset
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        run: echo "VER=$(if [ "$GITHUB_REF_TYPE" = tag ]; then echo "${GITHUB_REF_NAME#v}"; else echo 0.0.0-dev; fi)" >> "$GITHUB_ENV"
+      - name: Build
+        working-directory: TatouSource
+        run: |
+          cmake --preset windows-release
+          cmake --build --preset windows-release --target Fitd build_hda_archive --parallel 4
+      - name: Package
+        run: |
+          D="aitd-rehaunted-$VER-windows-x64"
+          B=TatouSource/build/vs2026
+          mkdir -p "$D" dist
+          cp "$B/Fitd/RelWithDebInfo/Tatou.exe" "$D/"
+          tools/release/stage.sh "$B/tools/RelWithDebInfo/build_hda_archive.exe" "$D" "$D"
+          # The MSVC runtime goes next to the exe (app-local), so no
+          # redistributable install is needed.
+          VSWHERE="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+          crt=$("$VSWHERE" -latest -find 'VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT\vcruntime140.dll' | sort | tail -1)
+          cp "$(dirname "$(cygpath -u "$crt")")"/*.dll "$D/"
+          # Every import is shipped or a Windows system DLL; the runtime is shipped.
+          dumpbin=$("$VSWHERE" -latest -find 'VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe' | sort | tail -1)
+          "$(cygpath -u "$dumpbin")" -nologo -dependents "$D/Tatou.exe" | tee imports.txt
+          grep -io '[a-z0-9_.-]*\.dll' imports.txt | while read -r dll; do
+            case "$dll" in
+              api-ms-win-*) ;;
+              vcruntime*|msvcp*|concrt*) test -f "$D/$dll" || { echo "::error::$dll not shipped"; exit 1; } ;;
+              *) test -f "$D/$dll" || test -f "/c/Windows/System32/$dll" || { echo "::error::unexpected import $dll"; exit 1; } ;;
+            esac
+          done
+          7z a -tzip "dist/$D.zip" "$D"
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dist/*.zip
+          archive: false
+
+  publish:
+    needs: [linux, macos, windows]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: No game files in any archive
+        run: |
+          cd dist
+          { for z in *.zip; do unzip -Z1 "$z"; done; for t in *.tar.gz; do tar tzf "$t"; done; } > ../contents.txt
+          if grep -Ei '\.(pak|itd)$|(^|/)music/' ../contents.txt; then
+            echo "::error::a game file is in a release archive"; exit 1
+          fi
+      - name: Checksums
+        run: cd dist && sha256sum -- *.zip *.tar.gz > SHA256SUMS && cat SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=""
+          case "$GITHUB_REF_NAME" in *-*) pre="--prerelease" ;; esac
+          # The player README as a preformatted block.
+          { echo '```text'; cat tools/release/README.txt; echo '```'; } > notes.md
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes \
+            --notes-file notes.md $pre dist/*
