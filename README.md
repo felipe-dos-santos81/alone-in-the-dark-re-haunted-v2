@@ -91,6 +91,12 @@ The game reads its files from the folder it starts in and writes
 `aitd_remaster.cfg` there, so that folder must be writable. The macOS app
 uses its own `Tatou.app/Contents/Resources` instead.
 
+## Download
+
+Ready-to-play builds for Windows, Linux and macOS, HD assets included, are on
+the [Releases](https://github.com/felipe-dos-santos81/alone-in-the-dark-re-haunted-v2/releases)
+page. Each archive's `README.txt` says where to copy your game files.
+
 ## Build and run
 
 **macOS and Linux**
