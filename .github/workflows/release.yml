@@ -1,8 +1,9 @@
 # Builds Tatou for Windows x64, Linux x64 and macOS (universal) with the HD
 # assets, and on a version tag publishes a GitHub Release with the three
 # archives and SHA256SUMS. A manual run (workflow_dispatch) builds and uploads
-# the archives as workflow artifacts only. No game file is ever packaged: the
-# player copies their own INDARK files in (tools/release/README.txt).
+# the archives as workflow artifacts and runs the publish checks, without
+# publishing. No game file is ever packaged: the player copies their own
+# INDARK files in (tools/release/README.txt).
 # Modelled on primal-rage-re's release.yml.
 name: Release
 
@@ -125,7 +126,6 @@ jobs:
 
   publish:
     needs: [linux, macos, windows]
-    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -135,9 +135,12 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+          skip-decompress: true   # keep the .zip archives as they are
       - name: No game files in any archive
         run: |
           cd dist
+          ls -l
+          set -- *.zip *.tar.gz; test $# -eq 3 && test -f "$1" && test -f "$2" && test -f "$3"
           { for z in *.zip; do unzip -Z1 "$z"; done; for t in *.tar.gz; do tar tzf "$t"; done; } > ../contents.txt
           if grep -Ei '\.(pak|itd)$|(^|/)music/' ../contents.txt; then
             echo "::error::a game file is in a release archive"; exit 1
@@ -145,6 +148,7 @@ jobs:
       - name: Checksums
         run: cd dist && sha256sum -- *.zip *.tar.gz > SHA256SUMS && cat SHA256SUMS
       - name: Publish
+        if: github.ref_type == 'tag'   # a manual run stops after the checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
