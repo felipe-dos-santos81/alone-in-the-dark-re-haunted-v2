@@ -155,6 +155,19 @@ static int modelHeightLimit()
     return (g_gameId == AITD1 && shakeVar1 != 0 && g_waterCutSuspended == 0) ? -600 : 10000;
 }
 
+// The cave water cuts one of the body's vertices this frame. Its HD replacement
+// has no such cut, so the body then draws classic, cut at the waist as in the original.
+static bool bodyHasCutVertex(const sBody* body)
+{
+    const size_t count = (std::min)(body->m_vertices.size(), size_t(NUM_MAX_POINT_IN_POINT_BUFFER));
+    for (size_t i = 0; i < count; i++)
+    {
+        if (s_vertexCut[i])
+            return true;
+    }
+    return false;
+}
+
 static bool primUsesCutVertex(const sPrimitive* ptr)
 {
     for (u16 point : ptr->m_points)
@@ -1687,8 +1700,9 @@ int AffObjet(int x,int y,int z,int alpha,int beta,int gamma, sBody* pBody)
         osystem_setModelLighting(g_playWorldActive && g_waterCutSuspended == 0, (float)x, (float)y, (float)z);
 
 		// Render primitives in order, unless the body's HD replacement draws instead
-		// (everything above, including BBox3D and primTable, stays the classic body's).
-		if (!(replacement && drawModelReplacement(replacement, pBody, x, y, z, alpha, beta, gamma)))
+		// (everything above, including BBox3D and primTable, stays the classic body's;
+		// the room lighting tint above reaches only the classic primitives).
+		if (!(replacement && !bodyHasCutVertex(pBody) && drawModelReplacement(replacement, pBody, x, y, z, alpha, beta, gamma)))
 		{
 			for(i=0;i<numOfPrimitiveToRender;i++)
 			{

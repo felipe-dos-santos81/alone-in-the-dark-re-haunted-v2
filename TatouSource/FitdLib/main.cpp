@@ -2894,7 +2894,7 @@ void drawLaserSight(tObject* actorPtr)
     if (range <= 0)
         return;
 
-    // Compute aim endpoint â€” same convention as DO_TIR raycast (beta - 0x100)
+    // Compute aim endpoint - same convention as DO_TIR raycast (beta - 0x100)
     int dz, dx;
     Rotate((unsigned int)(actorPtr->beta - 0x100) & 0x3FF, 0, -range, &dz, &dx);
 
@@ -2902,7 +2902,7 @@ void drawLaserSight(tObject* actorPtr)
     int endY = startY;
     int endZ = startZ + dz;
 
-    // Color 0x3C = bank 3, index 12 â€” bright red on the AITD ramp palette
+    // Color 0x3C = bank 3, index 12 - bright red on the AITD ramp palette
     drawProjectedLine(startX, startY, startZ, endX, endY, endZ, 0x3C);
 }
 

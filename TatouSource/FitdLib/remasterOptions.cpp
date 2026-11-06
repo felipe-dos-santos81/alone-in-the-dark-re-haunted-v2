@@ -381,6 +381,7 @@ static void drawAdvancedTab()
     ImGui::Separator();
     ImGui::Checkbox(tr("Steamless mode"), &g_remasterConfig.gameData.steamless);
     helpMarker(tr("Disables automatic game-data copying and Steam overlay integration after restart."));
+    // Game titles: the same in every language, so no tr().
     static const char* gameModes[] = {
         "Alone in the Dark", "Jack in the Dark", "Alone in the Dark 2", "Alone in the Dark 3"
     };

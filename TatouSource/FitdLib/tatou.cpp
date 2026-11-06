@@ -118,10 +118,11 @@ void process_events( void )
 	else
 #endif
 	{
+        bool holdTime = hdCompareHoldsTime(); // compare mode: every shot shows the same pose
 #ifdef FITD_UNITY_COMMANDS
-        if(!remasterOptionsIsOpen())
+        holdTime = holdTime || remasterOptionsIsOpen();
 #endif
-        if (!hdCompareHoldsTime()) // compare mode: every shot shows the same pose
+        if (!holdTime)
             timeGlobal += timeIncrease;
 	}
 	timer=timeGlobal;

@@ -139,3 +139,4 @@ Stages S3–S6 fill these in. "Classic" means the option off; "HD" means on.
 | 23 | HD: elbows, knees and shoulders bend as one rounded surface, without cracks or a shading step at the joint | | | | |
 | 24 | With `animation.poseSmoothing` off, HD bodies move exactly like the classic ones; classic bodies and hits are the same with it on or off | | | | |
 | 25 | HD: the animations that zoom a bone (`LISTANIM` 193–195, 239, 241; `LISTANI2` 68, 193–195, 239, 241) look as they did before dual-quaternion skinning | | | | |
+| 26 | HD: wading in the cave water, a body cut by the water draws classic, cut at the waist as with the option off; out of the water it draws HD again | | | | |
