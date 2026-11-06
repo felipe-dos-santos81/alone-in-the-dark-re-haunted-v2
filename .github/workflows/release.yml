@@ -2,8 +2,8 @@
 # assets, and on a version tag publishes a GitHub Release with the three
 # archives and SHA256SUMS. A manual run (workflow_dispatch) builds and uploads
 # the archives as workflow artifacts and runs the publish checks, without
-# publishing. No game file is ever packaged: the player copies their own
-# INDARK files in (tools/release/README.txt).
+# publishing. The game data is built into Tatou (FitdLib/embedded); no loose
+# .PAK/.ITD file is packaged (tools/release/README.txt).
 # Modelled on primal-rage-re's release.yml.
 name: Release
 
@@ -136,7 +136,7 @@ jobs:
           path: dist
           merge-multiple: true
           skip-decompress: true   # keep the .zip archives as they are
-      - name: No game files in any archive
+      - name: No loose game files in any archive
         run: |
           cd dist
           ls -l

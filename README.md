@@ -69,19 +69,20 @@ Seven saved games, three times each:
 
 ## Game data
 
-The game files are **not** included. You need to own *Alone in the Dark 1*
-([Steam](https://store.steampowered.com/app/548090/Alone_in_the_Dark_1/),
-[GOG](https://www.gog.com/en/game/alone_in_the_dark_the_trilogy_123) or the
-CD).
+The engine has the game data built in (`TatouSource/FitdLib/embedded/`):
+*Alone in the Dark 1*, *Jack in the Dark*, *Alone in the Dark 2* and *Alone
+in the Dark 3*. AITD1 starts; **F1 → Game data → Game mode** picks another
+game after a restart.
 
-1. Find the game's `INDARK` folder, which holds `LISTBODY.PAK`, `ETAGE00.PAK`,
-   `CAMERA00.PAK`, `OBJETS.ITD`, `VARS.ITD` and the rest:
-   - **GOG (macOS):** `Alone in the Dark 1.app` → *Show Package Contents* →
-     `Contents/Resources/game/INDARK/`
-   - **Steam / GOG (Windows):** `<install folder>/INDARK/`
-   - **CD-ROM:** `INDARK/` on the disc
-2. Copy its contents into `data/aitd1/` at the repository root (`data/` is
-   git-ignored).
+`.PAK` and `.ITD` files in the folder the game starts in are read instead of
+the built-in ones. The Python tools (`make export-models`, `make lang-pack`)
+read them from `data/aitd1/` (git-ignored). To use your own copy, put the
+contents of its `INDARK` folder there:
+
+- **GOG (macOS):** `Alone in the Dark 1.app` → *Show Package Contents* →
+  `Contents/Resources/game/INDARK/`
+- **Steam / GOG (Windows):** `<install folder>/INDARK/`
+- **CD-ROM:** `INDARK/` on the disc
 
 On Windows the engine can also find a Steam, GOG or CD install and copy the
 files itself (`gamedata.steamless = true` turns this off). macOS and Linux
@@ -93,9 +94,10 @@ uses its own `Tatou.app/Contents/Resources` instead.
 
 ## Download
 
-Ready-to-play builds for Windows, Linux and macOS, HD assets included, are on
-the [Releases](https://github.com/felipe-dos-santos81/alone-in-the-dark-re-haunted-v2/releases)
-page. Each archive's `README.txt` says where to copy your game files.
+Ready-to-play builds for Windows, Linux and macOS, game data and HD assets
+included, are on the
+[Releases](https://github.com/felipe-dos-santos81/alone-in-the-dark-re-haunted-v2/releases)
+page: unzip and run. Each archive has a `README.txt`.
 
 ## Build and run
 
@@ -286,5 +288,5 @@ play unchanged.
 
 ## License
 
-GNU General Public License v2 ([LICENSE](LICENSE)). The original game data is
-not included.
+GNU General Public License v2 ([LICENSE](LICENSE)). The built-in game data
+remains the property of its rights holders.
