@@ -1,3 +1,9 @@
+#ifdef FITD_UNITY_COMMANDS
+#include "../Unity/Native/unityHost.h"
+#define SDL_GetKeyboardState unityKeyboardState
+#define SDL_GetGamepadButton unityGamepadButton
+#define SDL_GetGamepadAxis unityGamepadAxis
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -326,7 +332,7 @@ void processControlsMenu(bool hdMode)
 		topY += 12;
 
 		// Show controller name if connected (translated)
-		if (g_controllerState.connected && g_controllerState.gamepad)
+		if (g_controllerState.connected)
 		{
 			const char* name = SDL_GetGamepadName(g_controllerState.gamepad);
 			if (name && name[0])
@@ -414,7 +420,7 @@ void processControlsMenu(bool hdMode)
 
 				if (remapGamepad)
 				{
-					if (g_controllerState.connected && g_controllerState.gamepad)
+					if (g_controllerState.connected)
 					{
 						for (int i = 0; i < SDL_GAMEPAD_BUTTON_COUNT; i++)
 						{
@@ -483,7 +489,7 @@ void processControlsMenu(bool hdMode)
 						{
 							captured = true;
 						}
-						else if (g_controllerState.connected && g_controllerState.gamepad)
+						else if (g_controllerState.connected)
 						{
 							for (int i = 0; i < SDL_GAMEPAD_BUTTON_COUNT; i++)
 							{

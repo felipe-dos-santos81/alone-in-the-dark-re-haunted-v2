@@ -1,3 +1,4 @@
+#include "processExit.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -8,6 +9,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "common.h"
+#include "hdBackground.h"
+#include "hdBackgroundRenderer.h"
 
 #define AITD3_CADRE_SPF						0
 #define AITD3_ITDFONT						1
@@ -49,9 +52,11 @@ void startAITD3()
 
 	while(1)
 	{
-		// Reset HD backgrounds before showing main menu
-		// (ensures UI is not covered by HD background after game over or returning from game)
-		
+		// Main menus are authored as a 320x200 UI. Always discard room/movie
+		// overrides so a stale HD frame cannot cover the menu.
+		osystem_clearSequenceHDFrame();
+		setCurrentAnimatedHDBackground(nullptr);
+		recreateBackgroundTexture(320, 200);
 
 		int startupMenuResult = MainMenu();
 
@@ -91,7 +96,7 @@ void startAITD3()
 		case 2: // exit
 			{
 				freeAll();
-				exit(-1);
+				fitdExit(-1);
 
 				break;
 			}
@@ -101,20 +106,37 @@ void startAITD3()
 
 void drawInventoryAITD3()
 {
+	int resourceIndex = -1;
 	switch (CVars[getCVarsIdx(TYPE_INVENTAIRE)])
 	{
 	case 0:
-		LoadPak("ITD_RESS", AITD3_INVENTAIRE_CAVERNE, logicalScreen);
+		resourceIndex = AITD3_INVENTAIRE_CAVERNE;
 		break;
 	case 1:
-		LoadPak("ITD_RESS", AITD3_INVENTAIRE_COWBOY, logicalScreen);
+		resourceIndex = AITD3_INVENTAIRE_COWBOY;
 		break;
 	case 2:
-		LoadPak("ITD_RESS", AITD3_INVENTAIRE_COUGUAR, logicalScreen);
+		resourceIndex = AITD3_INVENTAIRE_COUGUAR;
 		break;
 	default:
 		assert(0);
+		return;
 	}
+
+	HDBackgroundInfo* hdBackground = loadHDBackground("ITD_RESS", resourceIndex);
+	if (hdBackground)
+	{
+		updateBackgroundTextureHD(hdBackground->data, hdBackground->width,
+		                          hdBackground->height, hdBackground->channels);
+		if (hdBackground->isAnimated) setCurrentAnimatedHDBackground(hdBackground);
+		else freeHDBackground(hdBackground);
+	}
+	else
+	{
+		setCurrentAnimatedHDBackground(nullptr);
+		recreateBackgroundTexture(320, 200);
+	}
+	LoadPak("ITD_RESS", resourceIndex, logicalScreen);
 
 	statusLeft = 27;
 	statusTop = 100;

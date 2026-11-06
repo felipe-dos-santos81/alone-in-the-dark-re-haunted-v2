@@ -1,3 +1,4 @@
+#include "processExit.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -8,6 +9,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "common.h"
+#ifdef FITD_UNITY_COMMANDS
+#include "remasterOptions.h"
+#endif
 #include "configRemaster.h"
 #include "fontTTF.h"
 #include "hdBackgroundRenderer.h"
@@ -216,8 +220,12 @@ void AffOptionList(int selectedStringNumber, bool hdPreview)
     // Fullscreen option (no string table entry, draw manually)
     {
         int y = WindowY1 + ((WindowY2 - WindowY1) / 2) - (NB_OPTIONS * SIZE_FONT) / 2 + (6 * SIZE_FONT);
+#ifdef FITD_UNITY_COMMANDS
+        const char* fsText = "Rehaunted Options";
+#else
         const char* fsText = trDos(gIsFullscreen ? "Display: Fullscreen" : "Display: Windowed");
 
+#endif
         u8* fsPtr = (u8*)fsText;
 
         if (g_remasterConfig.font.enableTTF)
@@ -395,14 +403,16 @@ void processSystemMenu(void)
     int exitMenu = 0;
     int currentSelectedEntry;
 
-    // Capture HD state before recreateBackgroundTexture changes it
-    bool useHDBG = g_currentBackgroundIsHD;
+    // Menu presentation follows the configured detail mode, independently
+    // of whether the current room's generated HD image happens to exist yet.
+    const bool sceneWasHD = g_currentBackgroundIsHD;
+    bool useHDBG = detailLevel == 1 && g_remasterConfig.graphics.enableHDBackgrounds;
 
     // Freeze the scene snapshot so it preserves the last game frame (with 3D objects)
     osystem_freezeSceneForMenu();
 
     // Fallback: capture palettized background for non-PP path
-    if (useHDBG)
+    if (sceneWasHD)
     {
         memcpy(aux2, aux, 64000);
     }
@@ -428,7 +438,7 @@ void processSystemMenu(void)
 
     // Fallback from HD background to standard for menu rendering
     // (This happens AFTER we've captured aux2)
-    if (useHDBG)
+    if (sceneWasHD)
     {
         recreateBackgroundTexture(320, 200);
     }
@@ -473,6 +483,12 @@ void processSystemMenu(void)
 		{
 			memcpy(logicalScreen, aux2, 64000);
 		}
+		else
+		{
+			// HD menu text is redrawn over a clean indexed layer each frame.
+			// This prevents room/menu pixels accumulating behind transparent art.
+			memset(logicalScreen, 0, 64000);
+		}
 
 		clearTTFTextQueue();
 		AffOptionList(currentSelectedEntry, useHDBG);
@@ -513,9 +529,13 @@ void processSystemMenu(void)
                         notifyTTFMenuSelectionChanged();
                     }
                 }
-                if (menuMouseClicked() && getSystemMenuItemAtMouse(useHDBG) >= 0)
+                const int clickedItem = menuMouseClicked() ? getSystemMenuItemAtMouse(useHDBG) : -1;
+                if (clickedItem >= 0)
                 {
                     menuNoteItemClick();
+#ifdef FITD_UNITY_COMMANDS
+                    currentSelectedEntry = clickedItem;
+#endif
                     localKey = 0x1C;
                     localClick = 0;
                 }
@@ -546,8 +566,12 @@ void processSystemMenu(void)
                             return;
                         }
                         break;
-                    case 6: // fullscreen toggle
+                    case 6:
+#ifdef FITD_UNITY_COMMANDS
+                        if (!remasterOptionsIsOpen()) remasterOptionsToggle();
+#else
                         g_pendingFullscreenToggle = true;
+#endif
                         break;
                     case 7: // controls
                         processControlsMenu(useHDBG);
@@ -563,7 +587,7 @@ void processSystemMenu(void)
                         if (g_gameId == JACK)
                         {
                             freeAll();
-                            exit(0);
+                            fitdExit(0);
                         }
                         FlagGameOver = 1;
                         exitMenu = 1;
@@ -695,6 +719,7 @@ void processSystemMenu(void)
                         notifyTTFMenuSelectionChanged();
                         AntiRebond = 1;
                     }
+                    #ifndef FITD_UNITY_COMMANDS
                     // Handle left/right for fullscreen toggle
                     if((localJoyD == 4 || localJoyD == 8) && currentSelectedEntry == 6) // left or right on fullscreen option
                     {
@@ -706,6 +731,7 @@ void processSystemMenu(void)
                         notifyTTFMenuSelectionChanged();
                         AntiRebond = 1;
                     }
+                    #endif
                     // Handle left/right for hints toggle
                     if((localJoyD == 4 || localJoyD == 8) && currentSelectedEntry == 8) // left or right on hints option
                     {

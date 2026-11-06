@@ -108,15 +108,18 @@ Rebind them in **Controls** in the system menu rather than by hand.
   of these the song is silent.
 - **Music ON/OFF** in the system menu silences every file, loops included,
   and ON brings the loop back at once and the next scripted song at its cue.
-- **Jack in the Dark** (`gamedata.jackmode`) reads the same folder with its
-  own song numbers. Give it its own `music.folder`, or turn the option off.
+- **Jack in the Dark, AITD2 and AITD3** (`gamedata.mode`) read the same
+  folder with their own song numbers. Give each its own `music.folder`, or
+  turn the option off.
 
 ## Game data
 
 | Key | Default | Meaning |
 |---|---|---|
 | `gamedata.steamless` | `false` | `true` stops the game from finding and copying an installed game (Windows) and disables the Steam overlay |
-| `gamedata.jackmode` | `false` | Run *Jack in the Dark* from the `JACK` folder instead of AITD1 |
+| `gamedata.mode` | `aitd1` | The game to run: `aitd1`, `jack` (*Jack in the Dark*, from the `JACK` folder), `aitd2` or `aitd3`; each falls back to its built-in data. The older `gamedata.jackmode = true` is still read as `jack` |
+| `assets.autoUpscaleMissingHD` | `true` | In AITD2 and AITD3, queue the backgrounds, model atlases and movie frames with no HD version for Upscayl while the game runs |
+| `assets.upscaleScale` | `4` | The scale of those upscales, `2` to `4`; in those games `graphics.backgroundScale` is raised to it |
 
 ## Asset loading and dumping
 

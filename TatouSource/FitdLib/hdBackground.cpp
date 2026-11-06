@@ -1,3 +1,4 @@
+#include "filePaths.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -20,6 +21,10 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#ifdef FITD_UNITY_COMMANDS
+#include <cctype>
+#include <filesystem>
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -37,7 +42,16 @@
 // Returns the folder path for HD backgrounds
 const char* getHDBackgroundFolder()
 {
+    if (g_remasterConfig.gameData.mode == REMASTER_GAME_AITD2) return "backgrounds_hd_aitd2";
+    if (g_remasterConfig.gameData.mode == REMASTER_GAME_AITD3) return "backgrounds_hd_aitd3";
     return "backgrounds_hd";
+}
+
+static const char* getHDBackgroundArchive()
+{
+    if (g_remasterConfig.gameData.mode == REMASTER_GAME_AITD2) return "backgrounds_hd_aitd2.hda";
+    if (g_remasterConfig.gameData.mode == REMASTER_GAME_AITD3) return "backgrounds_hd_aitd3.hda";
+    return "backgrounds_hd.hda";
 }
 
 // Check if HD backgrounds are enabled in configuration
@@ -53,14 +67,20 @@ bool isHDBackgroundEnabled()
 // whenever it has been closed out from under us.
 static void ensureArchiveOpen()
 {
-    if (HDArchive::isOpen())
-        return; // still open from a previous call
+    const char* requestedArchive = getHDBackgroundArchive();
+    if (HDArchive::isOpen() && _stricmp(HDArchive::currentPath(), requestedArchive) == 0)
+        return;
 
-    static bool s_failed = false;
-    if (s_failed) return; // file does not exist - no point retrying every frame
+    // HDArchive is shared with atlases and common UI artwork. Reopen the
+    // requested background pack when another subsystem has replaced it.
+    static std::string failedArchive;
+    if (failedArchive == requestedArchive)
+        return;
 
-    if (!HDArchive::open("backgrounds_hd.hda"))
-        s_failed = true;
+    if (!HDArchive::open(requestedArchive))
+        failedArchive = requestedArchive;
+    else
+        failedArchive.clear();
 }
 
 // Load an image from an archive entry using stb_image
@@ -87,7 +107,20 @@ static std::vector<std::string> scanAnimationDirectory(const char* dirPath)
 {
     std::vector<std::string> files;
 
-#ifdef _WIN32
+#if defined(FITD_UNITY_COMMANDS)
+    files = fitdListMemoryFiles(dirPath);
+    std::error_code error;
+    for (std::filesystem::directory_iterator item(std::filesystem::u8path(fitdReadPath(dirPath)), error), end;
+         !error && item != end; item.increment(error))
+    {
+        if (!item->is_regular_file(error)) continue;
+        auto extension = item->path().extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (extension == ".png" || extension == ".tga" || extension == ".bmp")
+            files.push_back(item->path().filename().string());
+    }
+#elif defined(_WIN32)
     WIN32_FIND_DATAA findData;
     char searchPath[512];
     snprintf(searchPath, sizeof(searchPath), "%s/*.*", dirPath);
@@ -154,6 +187,7 @@ static std::vector<std::string> scanAnimationDirectory(const char* dirPath)
 
     // Sort files alphabetically to ensure consistent frame order
     std::sort(files.begin(), files.end());
+    files.erase(std::unique(files.begin(), files.end()), files.end());
 
     return files;
 }
@@ -163,7 +197,7 @@ static unsigned char* loadSingleFrame(const char* filePath, int* width, int* hei
 {
     unsigned char* imageData = nullptr;
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(FITD_UNITY_COMMANDS)
     // Use memory-mapped file for faster loading (Windows) - ~2x faster
     HANDLE hFile = INVALID_HANDLE_VALUE;
     HANDLE hMapping = NULL;
@@ -204,7 +238,7 @@ static unsigned char* loadSingleFrame(const char* filePath, int* width, int* hei
 #else
     // Fallback to regular file loading (Linux/Mac)
     PROTECTED_CALL({
-        imageData = stbi_load(filePath, width, height, channels, 0);
+        imageData = fitdLoadImage(filePath, width, height, channels, 0);
         if (imageData)
         {
             TRACK_ALLOCATION(imageData, (*width) * (*height) * (*channels), "stbi_load");
@@ -235,12 +269,45 @@ unsigned char* loadHDImageFile(const char* filename, int* width, int* height, in
     snprintf(filePath, sizeof(filePath), "%s/%s", getHDBackgroundFolder(), filename);
 
     FILE* testFile = nullptr;
-    fopen_s(&testFile, filePath, "rb");
+    fitdFopen_s(&testFile, filePath, "rb");
     if (!testFile)
         return nullptr;
     fclose(testFile);
 
     return loadSingleFrame(filePath, width, height, channels);
+}
+
+unsigned char* loadSharedHDImageFile(const char* filename, int* width, int* height, int* channels)
+{
+    // A mode-specific pack may deliberately override shared menu artwork.
+    unsigned char* image = loadHDImageFile(filename, width, height, channels);
+    if (image || g_remasterConfig.gameData.mode == REMASTER_GAME_AITD1)
+        return image;
+
+    // Development/unpacked distribution fallback.
+    char filePath[512];
+    snprintf(filePath, sizeof(filePath), "backgrounds_hd/%s", filename);
+    FILE* testFile = nullptr;
+    fitdFopen_s(&testFile, filePath, "rb");
+    if (testFile)
+    {
+        fclose(testFile);
+        image = loadSingleFrame(filePath, width, height, channels);
+        if (image)
+            return image;
+    }
+
+    // Shipping fallback. Opening the shared archive is safe because
+    // ensureArchiveOpen() now verifies which singleton archive is active and
+    // restores the game-specific pack on its next background request.
+    if ((!HDArchive::isOpen() || _stricmp(HDArchive::currentPath(), "backgrounds_hd.hda") != 0) &&
+        !HDArchive::open("backgrounds_hd.hda"))
+    {
+        return nullptr;
+    }
+
+    const HDArchiveEntry* entry = HDArchive::findEntry(filename);
+    return entry ? loadFromArchiveEntry(entry, width, height, channels) : nullptr;
 }
 
 // Free image data returned by loadHDImageFile
@@ -601,7 +668,7 @@ HDBackgroundInfo* loadHDBackground(const char* backgroundName, int cameraIdx, co
         }
 
         FILE* testFile = nullptr;
-        fopen_s(&testFile, filePath, "rb");
+        fitdFopen_s(&testFile, filePath, "rb");
         if (!testFile)
         {
             continue;
@@ -813,12 +880,12 @@ bool loadHDFrameBorders()
         
         // Check if file exists
         FILE* testFile = nullptr;
-        fopen_s(&testFile, filePath, "rb");
+        fitdFopen_s(&testFile, filePath, "rb");
         if (!testFile)
         {
             // Try in backgrounds_hd folder
             snprintf(filePath, sizeof(filePath), "%s/%s", getHDBackgroundFolder(), g_frameBorderFileNames[i]);
-            fopen_s(&testFile, filePath, "rb");
+            fitdFopen_s(&testFile, filePath, "rb");
             if (!testFile)
             {
                 continue;
@@ -831,7 +898,7 @@ bool loadHDFrameBorders()
         unsigned char* imageData = nullptr;
 
         PROTECTED_CALL({
-            imageData = stbi_load(filePath, &width, &height, &channels, 4); // Force RGBA
+            imageData = fitdLoadImage(filePath, &width, &height, &channels, 4); // Force RGBA
             if (imageData)
             {
                 // Track this allocation for debugging

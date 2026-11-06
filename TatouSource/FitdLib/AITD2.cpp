@@ -1,3 +1,4 @@
+#include "processExit.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -217,12 +218,11 @@ void startAITD2()
 
 	while(1)
 	{
-		// Reset HD backgrounds before showing main menu
-		// (ensures UI is not covered by HD background after game over or returning from game)
-		if (g_currentBackgroundIsHD)
-		{
-			recreateBackgroundTexture(320, 200);
-		}
+		// Main menus are authored as a 320x200 UI. Always discard room/movie
+		// overrides so a stale HD frame cannot cover the menu.
+		osystem_clearSequenceHDFrame();
+		setCurrentAnimatedHDBackground(nullptr);
+		recreateBackgroundTexture(320, 200);
 
 		int startupMenuResult = MainMenu();
 
@@ -260,7 +260,7 @@ void startAITD2()
 		case 2: // exit
 			{
 				freeAll();
-				exit(-1);
+				fitdExit(-1);
 
 				break;
 			}

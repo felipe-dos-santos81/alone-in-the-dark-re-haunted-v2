@@ -210,9 +210,9 @@ static void drawEffectsTab()
     intChoice(tr("SSGI samples"), &g_remasterConfig.postProcessing.ssgiNumSamples, samples, 5);
     ImGui::EndDisabled();
 
-    ImGui::Checkbox(tr("Light probes"), &g_remasterConfig.postProcessing.enableLightProbes);
+    ImGui::Checkbox(tr("Room lighting"), &g_remasterConfig.postProcessing.enableLightProbes);
     ImGui::BeginDisabled(!g_remasterConfig.postProcessing.enableLightProbes);
-    ImGui::SliderFloat(tr("Light probe intensity"), &g_remasterConfig.postProcessing.lightProbeIntensity, 0.0f, 4.0f, "%.2f");
+    ImGui::SliderFloat(tr("Room lighting strength"), &g_remasterConfig.postProcessing.lightProbeIntensity, 0.0f, 1.0f, "%.2f");
     ImGui::EndDisabled();
 }
 
@@ -381,8 +381,16 @@ static void drawAdvancedTab()
     ImGui::Separator();
     ImGui::Checkbox(tr("Steamless mode"), &g_remasterConfig.gameData.steamless);
     helpMarker(tr("Disables automatic game-data copying and Steam overlay integration after restart."));
-    ImGui::Checkbox(tr("Jack in the Dark mode"), &g_remasterConfig.gameData.jackMode);
-    helpMarker(tr("Selects the JACK data set. Restart required."));
+    // Game titles: the same in every language, so no tr().
+    static const char* gameModes[] = {
+        "Alone in the Dark", "Jack in the Dark", "Alone in the Dark 2", "Alone in the Dark 3"
+    };
+    ImGui::Combo(tr("Game mode"), &g_remasterConfig.gameData.mode, gameModes, 4);
+    helpMarker(tr("Selects a distinct on-disk/embedded data set. Restart required."));
+    ImGui::Checkbox(tr("Auto-generate missing HD assets"), &g_remasterConfig.assetGeneration.autoUpscaleMissingHD);
+    helpMarker(tr("For AITD2/AITD3, queues missing backgrounds, model atlases and movie frames for Upscayl while the game continues."));
+    ImGui::SliderInt(tr("Automatic upscale"), &g_remasterConfig.assetGeneration.upscaleScale, 2, 4, "%dx");
+    helpMarker(tr("4x is the native model output (320x200 backgrounds become 1280x800). Existing smaller automatic outputs are regenerated."));
 
     ImGui::Spacing();
     ImGui::TextDisabled("%s", tr("Diagnostics"));
@@ -398,6 +406,9 @@ static void drawAdvancedTab()
 
 void remasterOptionsDraw()
 {
+#ifdef FITD_UNITY_COMMANDS
+    return; // Unity owns the settings overlay. Keep the native input/startup gate.
+#endif
     if (!remasterOptionsIsOpen())
         return;
 

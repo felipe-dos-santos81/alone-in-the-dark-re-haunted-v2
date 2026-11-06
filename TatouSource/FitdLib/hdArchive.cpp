@@ -1,3 +1,4 @@
+#include "filePaths.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -24,9 +25,10 @@ static const uint32_t HDARCHIVE_VERSION_1 = 1;
 static const uint32_t HDARCHIVE_VERSION_2 = 2;
 
 // Internal state (singleton)
-static FILE*                          s_file    = nullptr;
+static FitdReadFile*                          s_file    = nullptr;
 static std::vector<HDArchiveEntry>    s_entries;
 static bool                           s_open    = false;
+static std::string                    s_currentPath;
 
 // Hash map for O(1) case-insensitive lookup by path
 static std::unordered_map<std::string, size_t> s_pathIndex; // lowered path -> index in s_entries
@@ -64,7 +66,7 @@ bool open(const char* archivePath)
 {
     close(); // close any previous archive
 
-    FILE* f = fopen(archivePath, "rb");
+    FitdReadFile* f = fitdOpenRead(archivePath, "rb");
     if (!f)
     {
         return false;
@@ -72,11 +74,11 @@ bool open(const char* archivePath)
 
     // Read header
     uint32_t magic = 0, version = 0, entryCount = 0;
-    if (fread(&magic, 4, 1, f) != 1 ||
-        fread(&version, 4, 1, f) != 1 ||
-        fread(&entryCount, 4, 1, f) != 1)
+    if (fitdRead(&magic, 4, 1, f) != 1 ||
+        fitdRead(&version, 4, 1, f) != 1 ||
+        fitdRead(&entryCount, 4, 1, f) != 1)
     {
-        fclose(f);
+        fitdClose(f);
         return false;
     }
 
@@ -84,7 +86,7 @@ bool open(const char* archivePath)
     {
         printf(HDAR_ERR "bad magic in %s (magic=0x%08X)" CON_RESET "\n",
                archivePath, magic);
-        fclose(f);
+        fitdClose(f);
         return false;
     }
 
@@ -92,7 +94,7 @@ bool open(const char* archivePath)
     {
         printf(HDAR_ERR "unsupported version %u in %s" CON_RESET "\n",
                version, archivePath);
-        fclose(f);
+        fitdClose(f);
         return false;
     }
 
@@ -103,26 +105,26 @@ bool open(const char* archivePath)
     for (uint32_t i = 0; i < entryCount; i++)
     {
         uint16_t pathLen = 0;
-        if (fread(&pathLen, 2, 1, f) != 1)
+        if (fitdRead(&pathLen, 2, 1, f) != 1)
         {
             s_entries.clear();
-            fclose(f);
+            fitdClose(f);
             return false;
         }
 
         std::string path(pathLen, '\0');
-        if (fread(&path[0], 1, pathLen, f) != pathLen)
+        if (fitdRead(&path[0], 1, pathLen, f) != pathLen)
         {
             s_entries.clear();
-            fclose(f);
+            fitdClose(f);
             return false;
         }
 
         uint64_t offset = 0, size = 0;
-        if (fread(&offset, 8, 1, f) != 1 || fread(&size, 8, 1, f) != 1)
+        if (fitdRead(&offset, 8, 1, f) != 1 || fitdRead(&size, 8, 1, f) != 1)
         {
             s_entries.clear();
-            fclose(f);
+            fitdClose(f);
             return false;
         }
 
@@ -131,11 +133,11 @@ bool open(const char* archivePath)
 
         if (isV2)
         {
-            if (fread(&uncompressedSize, 8, 1, f) != 1 ||
-                fread(&flags, 4, 1, f) != 1)
+            if (fitdRead(&uncompressedSize, 8, 1, f) != 1 ||
+                fitdRead(&flags, 4, 1, f) != 1)
             {
                 s_entries.clear();
-                fclose(f);
+                fitdClose(f);
                 return false;
             }
         }
@@ -164,6 +166,7 @@ bool open(const char* archivePath)
 
     s_file = f;
     s_open = true;
+    s_currentPath = archivePath ? archivePath : "";
 
     if (isV2)
     {
@@ -190,17 +193,23 @@ void close()
 {
     if (s_file)
     {
-        fclose(s_file);
+        fitdClose(s_file);
         s_file = nullptr;
     }
     s_entries.clear();
     s_pathIndex.clear();
     s_open = false;
+    s_currentPath.clear();
 }
 
 bool isOpen()
 {
     return s_open;
+}
+
+const char* currentPath()
+{
+    return s_currentPath.c_str();
 }
 
 const HDArchiveEntry* findEntry(const char* relativePath)
@@ -246,10 +255,10 @@ bool readEntry(const HDArchiveEntry* entry, void* buf)
         return false;
 
 #ifdef _WIN32
-    if (_fseeki64(s_file, (long long)entry->offset, SEEK_SET) != 0)
+    if (fitdSeek(s_file, (long long)entry->offset, SEEK_SET) != 0)
         return false;
 #else
-    if (fseeko(s_file, (off_t)entry->offset, SEEK_SET) != 0)
+    if (fitdSeek(s_file, (off_t)entry->offset, SEEK_SET) != 0)
         return false;
 #endif
 
@@ -260,7 +269,7 @@ bool readEntry(const HDArchiveEntry* entry, void* buf)
         if (!compBuf)
             return false;
 
-        if (fread(compBuf, 1, (size_t)entry->size, s_file) != (size_t)entry->size)
+        if (fitdRead(compBuf, 1, (size_t)entry->size, s_file) != (size_t)entry->size)
         {
             free(compBuf);
             return false;
@@ -282,7 +291,7 @@ bool readEntry(const HDArchiveEntry* entry, void* buf)
     }
 
     // Uncompressed: read directly into caller buffer
-    return fread(buf, 1, (size_t)entry->size, s_file) == (size_t)entry->size;
+    return fitdRead(buf, 1, (size_t)entry->size, s_file) == (size_t)entry->size;
 }
 
 unsigned char* readEntryAlloc(const HDArchiveEntry* entry, size_t* outSize)
@@ -305,6 +314,48 @@ unsigned char* readEntryAlloc(const HDArchiveEntry* entry, size_t* outSize)
         *outSize = sz;
 
     return buf;
+}
+
+size_t readEntryPrefix(const HDArchiveEntry* entry, void* buf, size_t len)
+{
+    if (!s_open || !entry || !buf || !s_file)
+        return 0;
+    len = (std::min)(len, (size_t)entry->uncompressedSize);
+
+#ifdef _WIN32
+    if (fitdSeek(s_file, (long long)entry->offset, SEEK_SET) != 0)
+        return 0;
+#else
+    if (fitdSeek(s_file, (off_t)entry->offset, SEEK_SET) != 0)
+        return 0;
+#endif
+
+    if (!(entry->flags & HDARCHIVE_FLAG_COMPRESSED))
+        return fitdRead(buf, 1, len, s_file);
+
+    // Inflate in small steps until `len` bytes are out
+    z_stream zs = {};
+    if (inflateInit(&zs) != Z_OK)
+        return 0;
+    unsigned char in[4096];
+    uint64_t left = entry->size;
+    zs.next_out = (Bytef*)buf;
+    zs.avail_out = (uInt)len;
+    int zrc = Z_OK;
+    while (zs.avail_out > 0 && zrc == Z_OK && left > 0)
+    {
+        const size_t chunk = (size_t)(std::min)(left, (uint64_t)sizeof(in));
+        if (fitdRead(in, 1, chunk, s_file) != chunk)
+            break;
+        left -= chunk;
+        zs.next_in = in;
+        zs.avail_in = (uInt)chunk;
+        while (zs.avail_in > 0 && zs.avail_out > 0 && zrc == Z_OK)
+            zrc = inflate(&zs, Z_NO_FLUSH);
+    }
+    const size_t got = len - zs.avail_out;
+    inflateEnd(&zs);
+    return got;
 }
 
 } // namespace HDArchive

@@ -9,12 +9,14 @@
 //Updated
 #include "common.h"
 #include "fontTTF.h"
+#include "filePaths.h"
 #include "configRemaster.h"
 #include "consoleLog.h"
 #include "font.h"
 #include "text/cp850.h"
 #include "lanternLighting.h"
 #include <vector>
+#include <atomic>
 #include <string>
 #include <SDL3/SDL_filesystem.h>
 #include <bgfx/bgfx.h>
@@ -28,6 +30,25 @@ static ImFont* g_ttfFont = nullptr;
 static ImFont* g_ttfFontCached = nullptr;  // Persists across shutdown/re-enable cycles
 static std::vector<TTFTextCommand> g_textQueue;
 static bool g_ttfInitialized = false;
+static std::atomic<int> g_fontStatus{0}; // 0 unavailable, 1 fallback, 2 configured font
+int getTTFFontStatus(){return g_fontStatus.load();}
+static ImFontAtlas* g_cachedAtlas = nullptr;
+static std::string g_cachedFontPath;
+static int g_cachedFontSize = 0;
+static int g_cachedFontStatus = 0;
+
+static ImFont* loadGameFont(ImFontAtlas* atlas, const char* path, float size, const ImFontConfig* config, const ImWchar* ranges)
+{
+    FitdReadFile* file=fitdOpenRead(path,"rb");
+    if(!file)return nullptr;
+    if(fitdSeek(file,0,SEEK_END)!=0){fitdClose(file);return nullptr;}
+    long length=fitdTell(file);
+    if(length<=0 || length>32*1024*1024 || fitdSeek(file,0,SEEK_SET)!=0){fitdClose(file);return nullptr;}
+    void* bytes=ImGui::MemAlloc(size_t(length));
+    size_t count=fitdRead(bytes,1,size_t(length),file);fitdClose(file);
+    if(count!=size_t(length)){ImGui::MemFree(bytes);return nullptr;}
+    return atlas->AddFontFromMemoryTTF(bytes,int(length),size,config,ranges);
+}
 static float g_fontLoadResolutionY = 0.0f;
 
 // Oil message suppression tracking (suppress lantern for ~3 seconds when message appears)
@@ -106,6 +127,15 @@ static std::string transformTTFText(const u8* src)
 
 void initTTFFont()
 {
+    if(!g_remasterConfig.font.enableTTF)return;
+    ImGuiIO& io = ImGui::GetIO();
+    const bool cacheValid=g_cachedAtlas==io.Fonts && g_cachedFontPath==g_remasterConfig.font.fontPath &&
+        g_cachedFontSize==g_remasterConfig.font.fontSize && io.Fonts->Fonts.contains(g_ttfFontCached);
+    if(g_ttfInitialized && cacheValid)return;
+    g_ttfInitialized=false;g_ttfFont=nullptr;g_fontStatus=0;
+    // Defer atlas changes requested by options until the next frame boundary.
+    if(io.Fonts->Locked && !cacheValid)return;
+    if(!cacheValid)g_ttfFontCached=nullptr;
     enableConsoleColors();
     printf(TTF_TAG CON_BOLD "════════════════════════════════════════\n" CON_RESET);
     printf(TTF_TAG CON_BOLD "  TrueType Font System - Initializing\n" CON_RESET);
@@ -126,15 +156,13 @@ void initTTFFont()
     if (g_ttfFontCached)
     {
         g_ttfFont = g_ttfFontCached;
-        g_ttfInitialized = true;
+        g_ttfInitialized = true;g_fontStatus=g_cachedFontStatus;
         printf(TTF_OK CON_GREEN "Font restored from cache" CON_RESET " (ptr=%p)\n", g_ttfFont);
         printf(TTF_TAG CON_BOLD "════════════════════════════════════════\n" CON_RESET);
         return;
     }
 
     printf(TTF_TAG CON_DIM "Acquiring ImGui IO..." CON_RESET "\n");
-    ImGuiIO& io = ImGui::GetIO();
-
     printf(TTF_TAG CON_DIM "Font atlas: %p" CON_RESET "\n", io.Fonts);
 
     // Try to load custom font
@@ -182,7 +210,7 @@ void initTTFFont()
 
     printf(TTF_TAG "Loading font: " CON_CYAN "%s" CON_RESET "\n", g_remasterConfig.font.fontPath);
 
-    g_ttfFont = io.Fonts->AddFontFromFileTTF(
+    g_ttfFont = loadGameFont(io.Fonts,
         g_remasterConfig.font.fontPath, 
         scaledFontSize, 
         &config, 
@@ -191,6 +219,7 @@ void initTTFFont()
 
     if (g_ttfFont)
     {
+        g_fontStatus=2;
         printf(TTF_OK CON_GREEN "Font loaded: " CON_RESET "%s " CON_DIM "(ptr=%p)" CON_RESET "\n", g_remasterConfig.font.fontPath, g_ttfFont);
     }
     else
@@ -212,9 +241,10 @@ void initTTFFont()
         for (const std::string& fallback : fallbackFonts)
         {
             printf(TTF_TAG CON_DIM "  Trying: %s" CON_RESET "\n", fallback.c_str());
-            g_ttfFont = io.Fonts->AddFontFromFileTTF(fallback.c_str(), scaledFontSize, &config, ranges);
+            g_ttfFont = loadGameFont(io.Fonts, fallback.c_str(), scaledFontSize, &config, ranges);
             if (g_ttfFont)
             {
+                g_fontStatus=1;
                 printf(TTF_OK CON_GREEN "Fallback loaded: " CON_RESET "%s " CON_DIM "(ptr=%p)" CON_RESET "\n", fallback.c_str(), g_ttfFont);
                 break;
             }
@@ -229,7 +259,9 @@ void initTTFFont()
     }
 
     g_ttfInitialized = true;
-    g_ttfFontCached = g_ttfFont;  // Cache for re-enable without atlas re-add
+    g_ttfFontCached = g_ttfFont;
+    g_cachedAtlas=io.Fonts;g_cachedFontPath=g_remasterConfig.font.fontPath;
+    g_cachedFontSize=g_remasterConfig.font.fontSize;g_cachedFontStatus=g_fontStatus.load();
     g_fontLoadResolutionY = kReferenceResolutionY;
     printf(TTF_OK CON_BGREEN "System ready" CON_RESET " " CON_DIM "(font=%p, refResY=%.0f)" CON_RESET "\n", g_ttfFont, g_fontLoadResolutionY);
 
@@ -245,7 +277,7 @@ void shutdownTTFFont()
 {
     g_textQueue.clear();
     g_ttfFont = nullptr;
-    g_ttfInitialized = false;
+    g_ttfInitialized = false;g_fontStatus=0;
     // Note: g_ttfFontCached is intentionally NOT cleared here.
     // The ImFont* remains valid in ImGui's atlas for the lifetime of the process.
     // initTTFFont() will restore from cache if TTF is re-enabled in the same session.
@@ -583,6 +615,7 @@ void clearTTFTextQueue()
 
 // Stub implementations when ImGui is disabled
 void initTTFFont() {}
+int getTTFFontStatus(){return 0;}
 void shutdownTTFFont() {}
 int getTTFTextWidth(u8* string) { return 0; }
 void queueTTFText(int x, int y, u8* string, int color, bool shadow, int shadowColor) {}

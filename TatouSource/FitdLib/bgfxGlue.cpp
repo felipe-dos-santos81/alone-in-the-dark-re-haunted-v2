@@ -1,3 +1,7 @@
+#include <stdexcept>
+#ifdef FITD_UNITY
+#include "../Unity/Native/unityHost.h"
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -28,8 +32,10 @@
 #include "inventory.h"
 #include "debugger.h"
 #include "remasterOptions.h"
+#include "hdAutoUpscale.h"
 #include "osystem.h"
 #include "menuFade.h"
+#include "sequence.h"
 
 #ifndef LANTERN_VERBOSE_LOGS
 #define LANTERN_VERBOSE_LOGS 0
@@ -68,6 +74,9 @@ void toggleFullscreen()
 {
     if (gWindowBGFX == nullptr)
         return;
+#ifdef FITD_UNITY
+    return; // Unity owns the visible window.
+#endif
 
     gIsFullscreen = !gIsFullscreen;
 
@@ -161,7 +170,12 @@ void StartFrame()
     oldResolution[0] = outputResolution[0];
     oldResolution[1] = outputResolution[1];
 
+#ifdef FITD_UNITY_COMMANDS
+    const uint32_t size = unityRenderSize();
+    outputResolution[0] = size & 65535; outputResolution[1] = size >> 16;
+#else
     SDL_GetWindowSizeInPixels(gWindowBGFX, &outputResolution[0], &outputResolution[1]);
+#endif
 
     if ((oldResolution[0] != outputResolution[0]) || (oldResolution[1] != outputResolution[1]))
     {
@@ -180,9 +194,21 @@ void StartFrame()
 
     // Increment TTF frame counter once per actual frame
     incrementTTFFrameCounter();
+#ifdef FITD_UNITY_COMMANDS
+    unitySettingsUpdate();
+#endif
 
     // Pull the input from SDL2 instead
+#ifdef FITD_UNITY_COMMANDS
+    ImGui::GetIO().DisplaySize = ImVec2(float(outputResolution[0]), float(outputResolution[1]));
+    ImGui::GetIO().DeltaTime = 1.0f / float(gFrameLimit > 0 ? gFrameLimit : 60);
+#else
     ImGui_ImplSDL3_NewFrame();
+#endif
+#ifdef FITD_UNITY
+    unityFrameInput();
+#endif
+    if(g_remasterConfig.font.enableTTF)initTTFFont();
     imguiBeginFrame(0, 0, 0, 0, outputResolution[0], outputResolution[1], -1);
 
     // Menu bar is hidden for cleaner look - uncomment to show debug info
@@ -287,8 +313,22 @@ void StartFrame()
             }
 #endif
 
-            const bool isLitLantern   = (heldObj.foundBody == LANTERN_LIT_BODY_NUM);
-            const bool isUnlitLantern = (heldObj.foundBody == LANTERN_BODY_NUM);
+            bool isLitLantern   = (heldObj.foundBody == LANTERN_LIT_BODY_NUM);
+            bool isUnlitLantern = (heldObj.foundBody == LANTERN_BODY_NUM);
+            // AITD1's oil lamp (OBJ 13) keeps found body 10 lit or not: no script changes it.
+            // Its real state is var 7 (set to 1 by the matches/lighter scripts LIFE 205/351/429,
+            // back to 0 by the lamp's LIFE 9 when the oil runs out). Without this, holding an
+            // unlit lamp glowed (user report 2026-10-16).
+            if (g_gameId == AITD1)
+            {
+                // In AITD1 only the oil lamp is a lantern. OBJ 2 ("Actions", held whenever
+                // nothing else is) has found body 269 = LANTERN_BODY_NUM, so holding nothing
+                // counted as "unlit lantern in hand" and the real lamp's in-hand state was
+                // never cleared after putting it down (no glow for a placed lamp).
+                const bool lit = heldObjIdx == 13 && vars && vars[7] == 1;
+                isLitLantern = heldObjIdx == 13 && lit;
+                isUnlitLantern = heldObjIdx == 13 && !lit;
+            }
 
             if (isLitLantern || isUnlitLantern)
             {
@@ -360,6 +400,7 @@ void EndFrame()
 
     // F1 remaster options are rendered last so the dialog stays above the game,
     // cinematic overlays and ordinary UI at every resolution.
+    hdAutoUpscale_DrawOverlay();
     remasterOptionsDraw();
 
     // Always call imguiEndFrame() to render ImGui windows to bgfx
@@ -369,7 +410,8 @@ void EndFrame()
     // otherwise does a simple pass-through). Always active for scene snapshot capture.
     // Skip endScene() when in PlayWorld but no 3D geometry was submitted yet (e.g. first
     // iteration or camera transitions) to avoid presenting background-only frames.
-    if (g_postProcessing && (!g_playWorldActive || g_menuActive || g_3dFlushedThisFrame))
+    if (g_postProcessing && (!g_playWorldActive || g_menuActive ||
+        g_3dFlushedThisFrame || isSequencePlaybackActive()))
     {
         g_postProcessing->endScene();
     }
@@ -379,6 +421,9 @@ void EndFrame()
     // but before bgfx::frame() (which presents and advances the frame).
     osystem_updateSceneSnapshot();
 
+#ifdef FITD_UNITY
+    bgfx::requestScreenShot(BGFX_INVALID_HANDLE, "unity");
+#endif
     bgfx::frame();
     hdCompareEndFrame();
 
@@ -386,6 +431,7 @@ void EndFrame()
     // The game doesn't re-draw text every frame, only when menus change
     // Clearing happens in queueTTFText() when a new batch is detected
 
+#ifndef FITD_UNITY_COMMANDS
     {
         static Uint64 last_time = SDL_GetPerformanceCounter();
         Uint64 now = SDL_GetPerformanceCounter();
@@ -401,12 +447,14 @@ void EndFrame()
 
         last_time = SDL_GetPerformanceCounter();
     }
+#endif
 }
 
 bgfx::Init initparam;
 
 void createBgfxInitParams()
 {
+#ifndef FITD_UNITY_COMMANDS
 #if BX_PLATFORM_LINUX
     const char* sdlVideoDriver = SDL_GetCurrentVideoDriver();
     if (sdlVideoDriver == NULL) sdlVideoDriver = "(null)";
@@ -435,6 +483,7 @@ void createBgfxInitParams()
     initparam.platformData.ndt = NULL;
     initparam.platformData.nwh = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(gWindowBGFX), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
 #endif // BX_PLATFORM_
+#endif // FITD_UNITY_COMMANDS
 }
 
 // ImGui's text-input (IME) request, recorded by ImGui::EndFrame() on the game
@@ -531,7 +580,11 @@ int initBgfxGlue(int argc, char* argv[])
     // ReShade compatibility settings
     // Set resolution explicitly to match window size
     int windowWidth, windowHeight;
+#ifdef FITD_UNITY_COMMANDS
+    windowWidth = unityRenderWidth(); windowHeight = unityRenderHeight();
+#else
     SDL_GetWindowSizeInPixels(gWindowBGFX, &windowWidth, &windowHeight);
+#endif
     initparam.resolution.width = windowWidth;
     initparam.resolution.height = windowHeight;
     initparam.resolution.reset = BGFX_RESET_VSYNC | getMsaaResetFlags();
@@ -555,7 +608,15 @@ int initBgfxGlue(int argc, char* argv[])
 
     printf(BGFX_TAG "Initializing BGFX with resolution: %dx%d\n", windowWidth, windowHeight);
 
-    bgfx::init(initparam);
+#ifdef FITD_UNITY
+    initparam.callback = unityBgfxCallback();
+    initparam.type = bgfx::RendererType::Direct3D11;
+#endif
+    if (!bgfx::init(initparam))
+        throw std::runtime_error("BGFX initialization failed");
+#ifdef FITD_UNITY
+    unityBgfxReady();
+#endif
 
     // Print actual renderer type for debugging
     const char* rendererName = bgfx::getRendererName(bgfx::getRendererType());
@@ -568,6 +629,7 @@ int initBgfxGlue(int argc, char* argv[])
 
     ImGuiIO& io = ImGui::GetIO();
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#ifndef FITD_UNITY_COMMANDS
     if ((bgfx::getRendererType() == bgfx::RendererType::Direct3D11) || (bgfx::getRendererType() == bgfx::RendererType::Direct3D12)) {
         ImGui_ImplSDL3_InitForD3D(gWindowBGFX);
     }
@@ -602,6 +664,8 @@ int initBgfxGlue(int argc, char* argv[])
     // is removed off it. Record the request; readKeyboard() applies it.
     ImGui::GetPlatformIO().Platform_SetImeDataFn = imguiRequestTextInput;
 
+#endif // FITD_UNITY_COMMANDS
+
     // Initialize TTF font system
     // Note: This adds fonts after imguiCreate() has already built the font atlas.
     // The atlas will need to be rebuilt, which happens automatically on first ImGui_ImplXXX_NewFrame()
@@ -624,11 +688,13 @@ int initBgfxGlue(int argc, char* argv[])
 
     printf(BGFX_OK "Light Probe system initialized\n");
 
-    // Initialize dust particle system
+#ifndef FITD_UNITY
+    // Unity builds omit the dust system, including its updates and draw calls.
     g_dustParticles = new DustParticleSystem();
     g_dustParticles->init();
 
     printf(BGFX_OK "Dust particle system initialized\n");
+#endif
 
     // Initialize lantern oil lighting system
     initLanternLighting();

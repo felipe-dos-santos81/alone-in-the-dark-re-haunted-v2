@@ -1,3 +1,4 @@
+#include "filePaths.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -8,7 +9,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "common.h"
+#include "pickupPromptGuard.h"
 #include "zlib.h"
+#include <algorithm>
 #include <filesystem>
 
 extern "C" {
@@ -45,7 +48,7 @@ static void writePNGChunk(FILE* f, const char* type, const unsigned char* data, 
 static bool writePNG(const char* filename, const unsigned char* rgba, int width, int height)
 {
     FILE* f = nullptr;
-    fopen_s(&f, filename, "wb");
+    fitdFopen_s(&f, filename, "wb");
     if (!f) return false;
 
     static const unsigned char sig[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
@@ -128,6 +131,7 @@ void saveInterpolatedValue(RealValue* pRotateStruct, FILE* fHandle)
 
 int loadSave(int saveNumber)
 {
+    stopLoopingSounds();    // the loaded state starts without the current room's loop
     char buffer[256];
     FILE* fHandle;
     unsigned int var28;
@@ -148,7 +152,7 @@ int loadSave(int saveNumber)
             sprintf_s(buffer, sizeof(buffer), "SAVE%d.ITD", saveNumber);
     }
 
-    fopen_s(&fHandle, buffer,"rb");
+    fitdFopen_s(&fHandle, buffer,"rb");
 
     if(!fHandle)
     {
@@ -187,8 +191,12 @@ int loadSave(int saveNumber)
     if(g_gameId == AITD1)
     {
         oldNumMaxObj = maxObjects;
-        maxObjects = 300; // fix for save engine..
-        ListWorldObjets.resize(maxObjects);
+        // The vanilla save format holds 300 records ("fix for save engine").
+        // A table raised past 300 (game data with more objects) keeps every
+        // record; the header holds the real count. Never shrink the table.
+        maxObjects = (std::max)(oldNumMaxObj, 300);
+        if ((int)ListWorldObjets.size() < maxObjects)
+            ListWorldObjets.resize(maxObjects);
     }
 
     for(i=0;i<maxObjects;i++)
@@ -605,6 +613,8 @@ int loadSave(int saveNumber)
         }
     }
 
+    pickupPromptGuardOnSaveLoaded(currentCameraTargetActor);
+
     NewNumCamera = var_E;
 
     return(1);
@@ -663,8 +673,10 @@ int makeSaveFile(int entry)
                 if (ListObjets[i].ANIM == 4)
                 {
                     CVars[getCVarsIdx(FOG_FLAG)] = 0;
-                    HQ_Free_Malloc(HQ_Memory, ListObjets[i].frame);
                 }
+                // every effect with particle data owns an HQ_Memory block (modes 0, 1, 4;
+                // 2 and 3 have frame -1); freeing only smoke leaked the 10000-byte pool
+                HQ_Free_Malloc(HQ_Memory, ListObjets[i].frame);
             }
 		}
 	}
@@ -678,7 +690,7 @@ int makeSaveFile(int entry)
             sprintf_s(buffer, sizeof(buffer), "SAVE%d.ITD", entry);
     }
 
-    fopen_s(&fHandle, buffer,"wb+");
+    fitdFopen_s(&fHandle, buffer,"wb+");
 
     if(!fHandle)
         return 0;
@@ -715,8 +727,12 @@ int makeSaveFile(int entry)
     if(g_gameId == AITD1)
     {
         oldNumMaxObj = maxObjects;
-        maxObjects = 300; // fix for save engine..
-        ListWorldObjets.resize(maxObjects);
+        // The vanilla save format holds 300 records ("fix for save engine").
+        // A table raised past 300 (game data with more objects) keeps every
+        // record; the header holds the real count. Never shrink the table.
+        maxObjects = (std::max)(oldNumMaxObj, 300);
+        if ((int)ListWorldObjets.size() < maxObjects)
+            ListWorldObjets.resize(maxObjects);
     }
 
     for(i=0;i<maxObjects;i++)
@@ -1101,7 +1117,7 @@ int makeSaveFile(int entry)
     {
         // Remove stale preview PNG so old screenshots don't persist
         std::error_code ec;
-        std::filesystem::remove(pngPath, ec);
+        std::filesystem::remove(std::filesystem::u8path(fitdWritePath(pngPath.string().c_str())), ec);
     }
 
     return 1;

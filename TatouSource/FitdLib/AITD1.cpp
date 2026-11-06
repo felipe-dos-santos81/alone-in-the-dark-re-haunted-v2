@@ -1,3 +1,4 @@
+#include "processExit.h"
 ///////////////////////////////////////////////////////////////////////////////
 // Alone In The Dark Re-Haunted
 // Copyright (C) 2026 Infogrames / Spacefarer Retro Remasters LLC
@@ -781,7 +782,7 @@ void startAITD1()
         case 2: // exit
         {
             freeAll();
-            exit(-1);
+            fitdExit(-1);
 
             break;
         }
