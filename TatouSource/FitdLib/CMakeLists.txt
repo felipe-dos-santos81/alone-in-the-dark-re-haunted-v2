@@ -49,6 +49,9 @@ file(GLOB_RECURSE SRC_ROOT
 )
 # LockedFiles/ holds reference copies of older sources; never build them.
 list(FILTER SRC_ROOT EXCLUDE REGEX "/LockedFiles/")
+# modelAtlas_fixed.cpp is an old copy of modelAtlas.cpp that upstream's own
+# project does not build: MSVC links both and fails on the duplicates.
+list(FILTER SRC_ROOT EXCLUDE REGEX "/modelAtlas_fixed\\.cpp$")
 
 # Two compiled .cpp files with the same name become two same-named members of
 # libFitdLib.a, and the linker silently keeps one: a stale copy can shadow the
